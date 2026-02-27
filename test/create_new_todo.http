@@ -1,0 +1,11 @@
+@base_url = http://localhost:8081
+
+### Create a new todo item
+POST {{base_url}}/todos
+Content-Type: application/json
+Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJleHAiOjE3NzE5MDUwMzR9.3QcHzLfHobciAxH5y7v82UcRNfT93j6EMLjvQ1SHOlE
+
+{
+  "text": "Buy groceries",
+  "completed": false
+}

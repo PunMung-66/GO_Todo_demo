@@ -1,0 +1,15 @@
+@baseurl = http://localhost:8081
+
+### Get Token
+# @name getToken
+GET {{baseurl}}/token
+
+### Create Todo
+POST {{baseurl}}/todos
+Content-Type: application/json
+Authorization: Bearer {{getToken.response.body.$.token}}
+
+{
+  "text": "Buy groceries",
+  "completed": false
+}
