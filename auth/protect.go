@@ -38,7 +38,9 @@ func Protect(signature []byte) gin.HandlerFunc {
 
 		tokenString := s[len("Bearer "):] // Extract the token string from the Authorization header by removing the "Bearer " prefix.
 
-		_, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		// _, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+		 token, err := jwt.Parse(tokenString, func(token *jwt.Token) (interface{}, error) {
+
 			if _, ok := token.Method.(*jwt.SigningMethodHMAC); !ok {
 				return nil, fmt.Errorf("unexpected signing method: %v", token.Header["alg"])
 			}
@@ -49,6 +51,13 @@ func Protect(signature []byte) gin.HandlerFunc {
 			c.AbortWithStatus(http.StatusUnauthorized)
 			return
 		}
+
+		if claims, ok := token.Claims.(jwt.MapClaims); ok && token.Valid {
+			// we can also check the Audience claim to ensure that the token is intended for the correct audience, and if it's not, we can return a 401 Unauthorized response.
+			aud := claims["aud"]
+			c.Set("aud", aud)
+			
+		} 
 		c.Next()
 	}
 }

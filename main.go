@@ -12,6 +12,7 @@ import (
 
 	"github.com/PunMung-66/todoAPI/auth"
 	"github.com/PunMung-66/todoAPI/todo"
+	"github.com/gin-contrib/cors"
 	"github.com/gin-gonic/gin"
 	// "github.com/glebarez/sqlite"
 	"github.com/joho/godotenv"
@@ -60,6 +61,15 @@ func main() {
 	db.AutoMigrate(&todo.Todo{})
 
 	r := gin.Default()
+	// set cors
+	config := cors.DefaultConfig()
+	config.AllowOrigins = []string{
+		"http://localhost:8080",
+	}
+
+	config.AllowHeaders = []string{"Origin", "Content-Length", "Content-Type", "Authorization", "Transaction-ID"}
+
+	r.Use(cors.New(config))
 
 	// readiness probe for kubernetes, we can use it to show build info in the future
 	r.GET("/health", func(c *gin.Context) {
@@ -90,6 +100,8 @@ func main() {
 
 	todoHandler := todo.NewTodoHandler(db)
 	protected.POST("/todos", todoHandler.NewTask)
+	protected.GET("/todos", todoHandler.List)
+	protected.DELETE("/todos/:id", todoHandler.Delete)
 
 	// r.Run(":" + port) // if we wnt to do gracefull shoutdown we need to use net http ,so can not use Gin
 

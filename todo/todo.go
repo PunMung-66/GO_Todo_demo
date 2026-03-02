@@ -3,7 +3,9 @@ package todo
 // สำหรับใครต้องการอ่านเพิ่มเติมเกี่ยวกับ Composition Over Inheritance สามารถอ่านได้ที่ https://dev.to/pallat/composition-over-inheritance-in-go-5b7b
 
 import (
+	"log"
 	"net/http"
+	"strconv"
 
 	"github.com/gin-gonic/gin"
 	"gorm.io/gorm"
@@ -58,6 +60,22 @@ func (h *TodoHandler) NewTask(c *gin.Context) {
 		return
 	}
 
+	// logging for easy investigation
+	if todo.Text == "sleep" {
+		// we can use c.Request.Header.Get to get the value and tracking the transaction id in the log, so we can easily investigate the issue if we have the transaction id in the log.
+		transactionId := c.Request.Header.Get("Transaction-ID")
+		// get audience from the context that we set in the Protect middleware, so we can also track the audience in the log for better investigation.
+		aud, exists := c.Get("aud")
+		if !exists {
+			log.Println(transactionId, "audience not found in context")
+		} else {
+			log.Println(transactionId, "audience:", aud)
+		}
+		log.Println(transactionId, aud, "not allowed")
+		c.JSON(http.StatusBadRequest, gin.H{"error": "not allowed"})
+		return
+	}
+
 	r := h.DB.Create(&todo)
 	if err := r.Error; err != nil {
 		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
@@ -66,4 +84,30 @@ func (h *TodoHandler) NewTask(c *gin.Context) {
 
 	// we can use todo.Model.ID to get the ID of the newly created task, and we can return it in the response along with the task details.
 	c.JSON(http.StatusCreated, gin.H{"message": "Task created successfully", "id": todo.ID, "task": todo})
+}
+
+
+func (h *TodoHandler) List(c *gin.Context) {
+	var todos []Todo
+	r := h.DB.Find(&todos)
+	if err := r.Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, todos)
+}
+
+func (h *TodoHandler) Delete(c *gin.Context) {
+	idParam := c.Param("id")
+	id, err := strconv.Atoi(idParam)
+	if err != nil {
+		c.JSON(http.StatusBadRequest, gin.H{"error": err.Error()})
+		return
+	}
+	r := h.DB.Delete(&Todo{}, id) // delete from which table and which id, we can also use map to delete with condition like h.DB.Delete(&Todo{}, "text = ?", "sleep") to delete all task with text sleep
+	if err := r.Error; err != nil {
+		c.JSON(http.StatusInternalServerError, gin.H{"error": err.Error()})
+		return
+	}
+	c.JSON(http.StatusOK, gin.H{"message": "Task deleted successfully"})
 }
